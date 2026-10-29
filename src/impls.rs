@@ -195,13 +195,6 @@ mod bstring {
         }
     }
 
-    impl Borrow<BStr> for String {
-        #[inline]
-        fn borrow(&self) -> &BStr {
-            self.as_bytes().as_bstr()
-        }
-    }
-
     impl BorrowMut<[u8]> for BString {
         #[inline]
         fn borrow_mut(&mut self) -> &mut [u8] {
@@ -718,13 +711,6 @@ mod bstr {
         #[inline]
         fn borrow(&self) -> &BStr {
             self.as_bstr()
-        }
-    }
-
-    impl Borrow<BStr> for str {
-        #[inline]
-        fn borrow(&self) -> &BStr {
-            self.as_bytes().as_bstr()
         }
     }
 

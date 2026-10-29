@@ -401,7 +401,7 @@ extern crate std;
 #[cfg(any(test, feature = "alloc"))]
 extern crate alloc;
 
-pub use crate::bstr::BStr;
+pub use crate::bstr::{BStr, DisplayLossy};
 #[cfg(feature = "alloc")]
 pub use crate::bstring::BString;
 pub use crate::escape_bytes::EscapeBytes;

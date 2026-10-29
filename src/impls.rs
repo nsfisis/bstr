@@ -114,13 +114,6 @@ mod bstring {
         bstr::BStr, bstring::BString, ext_slice::ByteSlice, ext_vec::ByteVec,
     };
 
-    impl fmt::Display for BString {
-        #[inline]
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            fmt::Display::fmt(self.as_bstr(), f)
-        }
-    }
-
     impl fmt::Debug for BString {
         #[inline]
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -454,9 +447,12 @@ mod bstr {
     #[cfg(feature = "alloc")]
     use alloc::{borrow::Cow, boxed::Box, string::String, vec::Vec};
 
-    use crate::{bstr::BStr, ext_slice::ByteSlice};
+    use crate::{
+        bstr::{BStr, DisplayLossy},
+        ext_slice::ByteSlice,
+    };
 
-    impl fmt::Display for BStr {
+    impl<'a> fmt::Display for DisplayLossy<'a> {
         #[inline]
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             /// Write the given bstr (lossily) to the given formatter.
@@ -487,16 +483,16 @@ mod bstr {
 
             if let Some(align) = f.align() {
                 let width = f.width().unwrap_or(0);
-                let nchars = self.chars().count();
+                let nchars = self.0.chars().count();
                 let remaining_pads = width.saturating_sub(nchars);
                 match align {
                     fmt::Alignment::Left => {
-                        write_bstr(f, self)?;
+                        write_bstr(f, self.0)?;
                         write_pads(f, remaining_pads)?;
                     }
                     fmt::Alignment::Right => {
                         write_pads(f, remaining_pads)?;
-                        write_bstr(f, self)?;
+                        write_bstr(f, self.0)?;
                     }
                     fmt::Alignment::Center => {
                         let half = remaining_pads / 2;
@@ -506,13 +502,13 @@ mod bstr {
                             half + 1
                         };
                         write_pads(f, half)?;
-                        write_bstr(f, self)?;
+                        write_bstr(f, self.0)?;
                         write_pads(f, second_half)?;
                     }
                 }
                 Ok(())
             } else {
-                write_bstr(f, self)?;
+                write_bstr(f, self.0)?;
                 Ok(())
             }
         }
@@ -1149,8 +1145,11 @@ mod display {
 
     #[test]
     fn clean() {
-        assert_eq!(&format!("{}", &b"abc".as_bstr()), "abc");
-        assert_eq!(&format!("{}", &b"\xf0\x28\x8c\xbc".as_bstr()), "�(��");
+        assert_eq!(&format!("{}", b"abc".as_bstr().display_lossy()), "abc");
+        assert_eq!(
+            &format!("{}", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
+            "�(��"
+        );
     }
 
     #[test]
@@ -1161,90 +1160,132 @@ mod display {
 
     #[test]
     fn width_bigger_than_bstr() {
-        assert_eq!(&format!("{:<7}!", &b"abc".as_bstr()), "abc    !");
-        assert_eq!(&format!("{:>7}!", &b"abc".as_bstr()), "    abc!");
-        assert_eq!(&format!("{:^7}!", &b"abc".as_bstr()), "  abc  !");
-        assert_eq!(&format!("{:^6}!", &b"abc".as_bstr()), " abc  !");
-        assert_eq!(&format!("{:-<7}!", &b"abc".as_bstr()), "abc----!");
-        assert_eq!(&format!("{:->7}!", &b"abc".as_bstr()), "----abc!");
-        assert_eq!(&format!("{:-^7}!", &b"abc".as_bstr()), "--abc--!");
-        assert_eq!(&format!("{:-^6}!", &b"abc".as_bstr()), "-abc--!");
+        assert_eq!(
+            &format!("{:<7}!", b"abc".as_bstr().display_lossy()),
+            "abc    !"
+        );
+        assert_eq!(
+            &format!("{:>7}!", b"abc".as_bstr().display_lossy()),
+            "    abc!"
+        );
+        assert_eq!(
+            &format!("{:^7}!", b"abc".as_bstr().display_lossy()),
+            "  abc  !"
+        );
+        assert_eq!(
+            &format!("{:^6}!", b"abc".as_bstr().display_lossy()),
+            " abc  !"
+        );
+        assert_eq!(
+            &format!("{:-<7}!", b"abc".as_bstr().display_lossy()),
+            "abc----!"
+        );
+        assert_eq!(
+            &format!("{:->7}!", b"abc".as_bstr().display_lossy()),
+            "----abc!"
+        );
+        assert_eq!(
+            &format!("{:-^7}!", b"abc".as_bstr().display_lossy()),
+            "--abc--!"
+        );
+        assert_eq!(
+            &format!("{:-^6}!", b"abc".as_bstr().display_lossy()),
+            "-abc--!"
+        );
 
         assert_eq!(
-            &format!("{:<7}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:<7}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��   !"
         );
         assert_eq!(
-            &format!("{:>7}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:>7}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "   �(��!"
         );
         assert_eq!(
-            &format!("{:^7}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:^7}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             " �(��  !"
         );
         assert_eq!(
-            &format!("{:^6}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:^6}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             " �(�� !"
         );
 
         assert_eq!(
-            &format!("{:-<7}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:-<7}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��---!"
         );
         assert_eq!(
-            &format!("{:->7}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:->7}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "---�(��!"
         );
         assert_eq!(
-            &format!("{:-^7}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:-^7}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "-�(��--!"
         );
         assert_eq!(
-            &format!("{:-^6}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:-^6}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "-�(��-!"
         );
     }
 
     #[test]
     fn width_lesser_than_bstr() {
-        assert_eq!(&format!("{:<2}!", &b"abc".as_bstr()), "abc!");
-        assert_eq!(&format!("{:>2}!", &b"abc".as_bstr()), "abc!");
-        assert_eq!(&format!("{:^2}!", &b"abc".as_bstr()), "abc!");
-        assert_eq!(&format!("{:-<2}!", &b"abc".as_bstr()), "abc!");
-        assert_eq!(&format!("{:->2}!", &b"abc".as_bstr()), "abc!");
-        assert_eq!(&format!("{:-^2}!", &b"abc".as_bstr()), "abc!");
+        assert_eq!(
+            &format!("{:<2}!", b"abc".as_bstr().display_lossy()),
+            "abc!"
+        );
+        assert_eq!(
+            &format!("{:>2}!", b"abc".as_bstr().display_lossy()),
+            "abc!"
+        );
+        assert_eq!(
+            &format!("{:^2}!", b"abc".as_bstr().display_lossy()),
+            "abc!"
+        );
+        assert_eq!(
+            &format!("{:-<2}!", b"abc".as_bstr().display_lossy()),
+            "abc!"
+        );
+        assert_eq!(
+            &format!("{:->2}!", b"abc".as_bstr().display_lossy()),
+            "abc!"
+        );
+        assert_eq!(
+            &format!("{:-^2}!", b"abc".as_bstr().display_lossy()),
+            "abc!"
+        );
 
         assert_eq!(
-            &format!("{:<3}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:<3}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��!"
         );
         assert_eq!(
-            &format!("{:>3}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:>3}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��!"
         );
         assert_eq!(
-            &format!("{:^3}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:^3}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��!"
         );
         assert_eq!(
-            &format!("{:^2}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:^2}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��!"
         );
 
         assert_eq!(
-            &format!("{:-<3}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:-<3}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��!"
         );
         assert_eq!(
-            &format!("{:->3}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:->3}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��!"
         );
         assert_eq!(
-            &format!("{:-^3}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:-^3}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��!"
         );
         assert_eq!(
-            &format!("{:-^2}!", &b"\xf0\x28\x8c\xbc".as_bstr()),
+            &format!("{:-^2}!", b"\xf0\x28\x8c\xbc".as_bstr().display_lossy()),
             "�(��!"
         );
     }
@@ -1253,7 +1294,7 @@ mod display {
     quickcheck::quickcheck! {
         fn total_length(bstr: BString) -> bool {
             let size = bstr.chars().count();
-            format!("{:<1$}", bstr.as_bstr(), size).chars().count() >= size
+            format!("{:<1$}", bstr.display_lossy(), size).chars().count() >= size
         }
     }
 }

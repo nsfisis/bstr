@@ -24,9 +24,8 @@ use alloc::boxed::Box;
 /// The `Debug` implementation for `BStr` shows its bytes as a normal string.
 /// For invalid UTF-8, hex escape sequences are used.
 ///
-/// The `Display` implementation behaves as if `BStr` were first lossily
-/// converted to a `str`. Invalid UTF-8 bytes are substituted with the Unicode
-/// replacement codepoint, which looks like this: �.
+/// The `Display` implementation for `BStr` has been removed in this fork
+/// because it implicitly performs a lossy conversion.
 #[repr(transparent)]
 pub struct BStr {
     pub(crate) bytes: [u8],
@@ -94,4 +93,46 @@ impl BStr {
     pub(crate) fn as_bytes(&self) -> &[u8] {
         &self.bytes
     }
+
+    /// Provides a escape hatch for lossily displaying byte strings as UTF-8.
+    ///
+    /// ```
+    /// use bstr::BStr;
+    ///
+    /// let s = BStr::new(b"foo\xFFbar");
+    /// assert_eq!(format!("{}", s.display_lossy()), "foo\u{FFFD}bar");
+    /// assert_eq!(format!("{:-^9}", s.display_lossy()), "-foo\u{FFFD}bar-");
+    /// ```
+    ///
+    /// ```compile_fail
+    /// use bstr::BStr;
+    ///
+    /// let _ = BStr::new(b"foo").to_string();
+    /// ```
+    ///
+    /// ```compile_fail
+    /// use bstr::BStr;
+    ///
+    /// let _ = format!("{}", BStr::new(b"foo"));
+    /// ```
+    ///
+    /// ```compile_fail
+    /// use bstr::BString;
+    ///
+    /// let _ = BString::from("foo").to_string();
+    /// ```
+    ///
+    /// ```compile_fail
+    /// use bstr::BString;
+    ///
+    /// let _ = format!("{}", BString::from("foo"));
+    /// ```
+    #[inline]
+    pub fn display_lossy(&self) -> DisplayLossy<'_> {
+        DisplayLossy(self)
+    }
 }
+
+/// Helper struct for lossily displaying byte strings as UTF-8.
+#[derive(Clone, Copy, Debug)]
+pub struct DisplayLossy<'a>(pub(crate) &'a BStr);

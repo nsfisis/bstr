@@ -9,6 +9,13 @@ not required to be valid UTF-8, but may be fully or partially valid UTF-8.
 [![crates.io](https://img.shields.io/crates/v/bstr.svg)](https://crates.io/crates/bstr)
 
 
+### Fork (php-shirabe)
+
+This fork is maintained for [Shirabe project](https://github.com/nsfisis/php-shirabe).
+It removes `Display` implementations for `BStr` and `BString` because they implicitly
+perform lossy conversions.
+
+
 ### Documentation
 
 https://docs.rs/bstr

@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use crate::bstr::BStr;
+use crate::bstr::{BStr, DisplayLossy};
 
 /// A wrapper for `Vec<u8>` that provides convenient string oriented trait
 /// impls.
@@ -65,6 +65,19 @@ impl BString {
     #[inline]
     pub const fn new(bytes: Vec<u8>) -> BString {
         BString { bytes }
+    }
+
+    /// Provides a escape hatch for lossily displaying byte strings as UTF-8.
+    ///
+    /// ```
+    /// use bstr::BString;
+    ///
+    /// let s = BString::from(&b"foo\xFFbar"[..]);
+    /// assert_eq!(format!("{}", s.display_lossy()), "foo\u{FFFD}bar");
+    /// ```
+    #[inline]
+    pub fn display_lossy(&self) -> DisplayLossy<'_> {
+        self.as_bstr().display_lossy()
     }
 
     #[inline]

@@ -159,7 +159,7 @@ pub trait ByteVec: private::Sealed {
     ///
     /// let v = vec![b'a', b'b', b'c'];
     /// let b = v.to_bstring();
-    /// println!("{b}");
+    /// println!("{}", b.display_lossy());
     /// assert_eq!(b, "abc");
     /// assert_ne!(b, "hello");
     /// ```
@@ -186,7 +186,7 @@ pub trait ByteVec: private::Sealed {
     ///
     /// let mut v = vec![b'a', b'b', b'c'];
     /// let b = v.as_bstring();
-    /// println!("{b}");
+    /// println!("{}", b.display_lossy());
     /// assert_eq!(b, "abc");
     /// assert_ne!(b, "hello");
     /// // no references to `b` after this point
@@ -213,7 +213,7 @@ pub trait ByteVec: private::Sealed {
     ///
     /// let mut v = vec![b'a', b'b', b'c'];
     /// let b = v.as_bstring_mut();
-    /// println!("{b}");
+    /// println!("{}", b.display_lossy());
     /// assert_eq!(b, "abc");
     /// assert_ne!(b, "hello");
     /// b.push_str("de");
